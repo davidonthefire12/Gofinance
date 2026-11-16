@@ -1,0 +1,12 @@
+{{define "login"}}
+<div class="login">
+  <h1>Financial Tracker</h1>
+  <p class="sub">Enter your PIN to continue</p>
+  <form class="box" hx-post="/login">
+    {{if .Error}}<p class="err">{{.Error}}</p>{{end}}
+    <label for="pin">PIN</label>
+    <input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" autofocus required>
+    <button type="submit">Log in</button>
+  </form>
+</div>
+{{end}}

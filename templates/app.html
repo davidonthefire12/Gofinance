@@ -1,0 +1,88 @@
+{{define "app"}}
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Financial Tracker</h1>
+      <p class="sub">{{.MonthName}} {{.Year}}</p>
+    </div>
+    <button class="btn big" hx-post="/logout">Log out</button>
+  </div>
+
+  <form class="nav" hx-get="/app" hx-trigger="change">
+    <button type="button" class="btn big" hx-get="/app?year={{.Prev.Year}}&month={{.Prev.Month}}">← Previous</button>
+    <button type="button" class="btn big" hx-get="/app?year={{.Today.Year}}&month={{.Today.Month}}">Today</button>
+    <button type="button" class="btn big" hx-get="/app?year={{.Next.Year}}&month={{.Next.Month}}">Next →</button>
+    <select name="month" aria-label="Month">{{range .Months}}<option value="{{.N}}" {{if .Sel}}selected{{end}}>{{.Name}}</option>{{end}}</select>
+    <select name="year" aria-label="Year">{{range .Years}}<option value="{{.N}}" {{if .Sel}}selected{{end}}>{{.Name}}</option>{{end}}</select>
+  </form>
+
+  {{if .Error}}<p class="err">{{.Error}}</p>{{end}}
+
+  <form id="rowform" hx-post="/rows/save">
+    <input type="hidden" name="id" value="{{if .Edit}}{{.Edit.ID}}{{end}}">
+    <input type="hidden" name="year" value="{{.Year}}">
+    <input type="hidden" name="month" value="{{.Month}}">
+  </form>
+
+  <div class="card">
+    <table class="tx">
+      <thead><tr><th>Date</th><th>Type / Payment</th><th class="num">Amount</th><th>Note</th><th class="num">Actions</th></tr></thead>
+      <tbody>
+      {{range .Rows}}
+        {{if and $.Edit (eq $.Edit.ID .ID)}}{{template "editrow" $}}{{else}}
+        <tr>
+          <td data-label="Date">{{.DateDisp}}</td>
+          <td data-label="Type"><span><span class="dot {{if .IsIncome}}inc{{end}}"></span>{{.Type}}</span></td>
+          <td data-label="Amount" class="num {{if .IsIncome}}pos{{else}}neg{{end}}">{{.AmountDisp}}</td>
+          <td data-label="Note">{{.Note}}</td>
+          <td class="act">
+            <button class="btn" hx-get="/app?year={{$.Year}}&month={{$.Month}}&edit={{.ID}}">Edit</button>
+            <button class="btn del" hx-post="/rows/delete?year={{$.Year}}&month={{$.Month}}&id={{.ID}}" hx-confirm="Delete this row?">Delete</button>
+          </td>
+        </tr>{{end}}
+      {{else}}
+        {{if not .Edit}}<tr><td colspan="5" class="empty">No transactions in {{.MonthName}} {{.Year}}. Add the first row below.</td></tr>{{end}}
+      {{end}}
+        {{if .Edit}}{{if not .Edit.ID}}{{template "editrow" .}}{{end}}{{end}}
+        <tr class="total"><td colspan="2">TOTAL</td><td class="num {{if .BalNeg}}neg{{else}}pos{{end}}">{{.Balance}}</td><td colspan="2"></td></tr>
+      </tbody>
+    </table>
+    <div class="stats">
+      <div>Total income (Salary)<b class="pos">{{.Income}}</b></div>
+      <div>Total expenses<b class="neg">{{.Expense}}</b></div>
+      <div>Balance<b class="{{if .BalNeg}}neg{{else}}pos{{end}}">{{.Balance}}</b></div>
+    </div>
+    <div class="add"><button class="btn dark" hx-get="/app?year={{.Year}}&month={{.Month}}&new=1">+ Add New Row</button></div>
+  </div>
+
+  <div class="card">
+    <h2>Year Summary — {{.Year}}</h2>
+    <div class="stats">
+      <div>Yearly income (Salary)<b class="pos">{{.YIncome}}</b></div>
+      <div>Yearly expenses<b class="neg">{{.YExpense}}</b></div>
+      <div>Yearly balance<b class="{{if .YBalNeg}}neg{{else}}pos{{end}}">{{.YBalance}}</b></div>
+    </div>
+    <table class="sum">
+      <thead><tr><th>Month</th><th class="num">Income</th><th class="num">Expenses</th><th class="num">Balance</th></tr></thead>
+      <tbody>
+      {{range .Summary}}
+        <tr {{if .Current}}class="cur"{{end}}><td>{{.Name}}</td><td class="num pos">{{.Income}}</td><td class="num neg">{{.Expense}}</td><td class="num {{if .BalNeg}}neg{{end}}">{{.Balance}}</td></tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{end}}
+
+{{define "editrow"}}
+<tr class="editing">
+  <td data-label="Date"><input form="rowform" type="date" name="date" value="{{.Edit.Date}}" required></td>
+  <td data-label="Type"><select form="rowform" name="type">{{range .Types}}<option value="{{.}}" {{if eq . $.Edit.Type}}selected{{end}}>{{.}}</option>{{end}}</select></td>
+  <td data-label="Amount" class="num"><input form="rowform" type="number" step="0.01" min="0.01" name="amount" value="{{.Edit.Amount}}" placeholder="0.00" required></td>
+  <td data-label="Note"><input form="rowform" name="note" value="{{.Edit.Note}}" placeholder="Note"></td>
+  <td class="act">
+    <button form="rowform" type="submit" class="btn dark" style="font-size:11px;padding:4px 10px">Save</button>
+    <button type="button" class="btn" hx-get="/app?year={{.Year}}&month={{.Month}}">Cancel</button>
+  </td>
+</tr>
+{{end}}
